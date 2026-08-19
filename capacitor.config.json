@@ -1,0 +1,9 @@
+{
+  "appId": "com.ledgerapp.invoices",
+  "appName": "Ledger",
+  "webDir": "www",
+  "backgroundColor": "#EDE9DD",
+  "android": {
+    "backgroundColor": "#EDE9DD"
+  }
+}
