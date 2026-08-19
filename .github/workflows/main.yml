@@ -20,11 +20,17 @@ jobs:
       - name: Install project dependencies
         run: npm install
 
+      - name: Build web application
+        run: npm run build
+
       - name: Set up Java (required by Gradle/Android build)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
+
+      - name: Add Android platform
+        run: npx cap add android
 
       - name: Sync Capacitor web assets into the Android project
         run: npx cap sync android
