@@ -20,9 +20,6 @@ jobs:
       - name: Install project dependencies
         run: npm install
 
-      - name: Build web application
-        run: npm run build
-
       - name: Set up Java (required by Gradle/Android build)
         uses: actions/setup-java@v4
         with:
