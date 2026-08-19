@@ -26,6 +26,11 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - name: Add Android platform
+        run: |
+          rm -rf android
+          npx cap add android
+
       - name: Sync Capacitor web assets into the Android project
         run: npx cap sync android
 
