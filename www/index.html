@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ledger — Invoices & Quotes</title>
+<style>
+  :root{
+    --paper:#EDE9DD;
+    --paper-line:#D9D3C1;
+    --ink:#1F2D3D;
+    --ink-soft:#5B6470;
+    --stamp:#A13D2C;
+    --brass:#A6874F;
+    --brass-soft:#EFE6D2;
+    --white:#FBFAF6;
+    --radius:2px;
+    --serif:'Fraunces', 'Georgia', serif;
+    --sans:'Inter', -apple-system, sans-serif;
+    --mono:'JetBrains Mono', 'Courier New', monospace;
+  }
+  @font-face{
+    font-family:'Fraunces';
+    src:local('Georgia');
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);font-family:var(--sans);}
+  body{min-height:100vh;}
+  .app{display:grid;grid-template-columns: 1fr 1.1fr;gap:0;min-height:100vh;}
+  @media (max-width: 920px){.app{grid-template-columns:1fr;}}
+
+  /* ============ LEFT: FORM ============ */
+  .form-panel{padding:36px 32px 80px;background:var(--paper);border-right:1px solid var(--paper-line);}
+  .brand{display:flex;align-items:baseline;gap:10px;margin-bottom:28px;}
+  .brand-mark{width:26px;height:26px;border:1.5px solid var(--ink);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:14px;font-weight:600;flex-shrink:0;}
+  .brand h1{font-family:var(--serif);font-size:22px;font-weight:600;margin:0;letter-spacing:0.2px;}
+  .brand .tag{font-family:var(--mono);font-size:10px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:1.5px;margin-left:2px;}
+
+  .field-group{margin-bottom:22px;}
+  .field-group .grp-label{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:1.2px;color:var(--brass);margin-bottom:10px;display:block;font-weight:600;}
+  .row{display:flex;gap:10px;margin-bottom:8px;}
+  .row > *{flex:1;}
+  label.small{display:block;font-size:11px;color:var(--ink-soft);margin-bottom:4px;}
+  input[type=text], input[type=number], input[type=date], textarea, select{
+    width:100%;padding:9px 10px;border:1px solid var(--paper-line);background:var(--white);
+    border-radius:var(--radius);font-family:var(--sans);font-size:13.5px;color:var(--ink);
+  }
+  input:focus, textarea:focus, select:focus{outline:none;border-color:var(--brass);}
+  textarea{resize:vertical;min-height:50px;}
+
+  .items{border:1px solid var(--paper-line);border-radius:var(--radius);overflow:hidden;background:var(--white);}
+  .item-row{display:grid;grid-template-columns: 1fr 60px 80px 30px;gap:8px;padding:10px;border-bottom:1px solid var(--paper-line);align-items:center;}
+  .item-row:last-child{border-bottom:none;}
+  .item-row input{padding:7px 8px;font-size:13px;}
+  .item-row .rm{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:16px;line-height:1;padding:2px;}
+  .item-row .rm:hover{color:var(--stamp);}
+  .add-item{width:100%;padding:10px;background:var(--white);border:1px dashed var(--paper-line);border-radius:var(--radius);color:var(--ink-soft);font-family:var(--mono);font-size:11px;letter-spacing:0.5px;text-transform:uppercase;cursor:pointer;margin-top:8px;}
+  .add-item:hover{border-color:var(--brass);color:var(--brass);}
+
+  .btn-primary{width:100%;padding:13px;background:var(--ink);color:var(--white);border:none;border-radius:var(--radius);font-family:var(--mono);font-size:12px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;margin-top:8px;}
+  .btn-primary:hover{background:var(--stamp);}
+  .btn-secondary{width:100%;padding:11px;background:transparent;color:var(--ink);border:1px solid var(--ink);border-radius:var(--radius);font-family:var(--mono);font-size:11px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;margin-top:10px;}
+
+  .pro-box{margin-top:26px;padding:14px 16px;background:var(--brass-soft);border:1px solid var(--brass);border-radius:var(--radius);}
+  .pro-box .grp-label{margin-bottom:6px;}
+  .pro-box p{font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;line-height:1.5;}
+  .pro-box input{margin-bottom:8px;}
+  .pro-status{font-size:11px;font-family:var(--mono);margin-top:6px;}
+  .pro-status.active{color:#3D7A4F;}
+  .pro-status.inactive{color:var(--ink-soft);}
+
+  /* ============ RIGHT: PREVIEW ============ */
+  .preview-panel{background:#DAD5C4;padding:40px;display:flex;align-items:flex-start;justify-content:center;}
+  .sheet{width:100%;max-width:560px;background:var(--white);box-shadow:0 8px 30px rgba(31,45,61,0.15);position:relative;padding:44px 40px 40px;min-height:700px;}
+  .sheet::before{content:'';position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg, var(--ink) 0%, var(--ink) 100%);}
+  .sheet-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid var(--ink);padding-bottom:18px;margin-bottom:22px;}
+  .sheet-brand h2{font-family:var(--serif);font-size:24px;margin:0 0 4px;font-weight:600;}
+  .sheet-brand p{font-size:12px;color:var(--ink-soft);margin:0;line-height:1.5;white-space:pre-line;}
+  .doc-type{text-align:right;}
+  .doc-type .kind{font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--stamp);font-weight:600;}
+  .doc-type .num{font-family:var(--serif);font-size:19px;margin-top:4px;}
+  .doc-type .date{font-size:11px;color:var(--ink-soft);margin-top:6px;}
+
+  .bill-to{margin-bottom:26px;}
+  .bill-to .grp-label{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--brass);margin-bottom:6px;font-weight:600;}
+  .bill-to .name{font-family:var(--serif);font-size:16px;margin-bottom:2px;}
+  .bill-to .meta{font-size:12px;color:var(--ink-soft);white-space:pre-line;line-height:1.5;}
+
+  table.items-table{width:100%;border-collapse:collapse;margin-bottom:20px;}
+  table.items-table thead th{text-align:left;font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-soft);border-bottom:1.5px solid var(--ink);padding-bottom:8px;font-weight:600;}
+  table.items-table thead th.num{text-align:right;}
+  table.items-table tbody td{padding:9px 0;border-bottom:1px solid var(--paper-line);font-size:13px;}
+  table.items-table tbody td.num{text-align:right;font-family:var(--mono);}
+
+  .totals{margin-left:auto;width:220px;margin-top:10px;}
+  .totals .trow{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;}
+  .totals .trow.grand{border-top:2px solid var(--ink);margin-top:6px;padding-top:10px;font-family:var(--serif);font-size:18px;font-weight:600;}
+  .totals .trow span:last-child{font-family:var(--mono);}
+
+  .notes-block{margin-top:28px;padding-top:16px;border-top:1px dashed var(--paper-line);}
+  .notes-block .grp-label{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:1px;color:var(--brass);margin-bottom:6px;font-weight:600;}
+  .notes-block p{font-size:12px;color:var(--ink-soft);white-space:pre-line;line-height:1.6;margin:0;}
+
+  .stamp-el{position:absolute;bottom:44px;right:44px;width:88px;height:88px;border:2.5px solid var(--stamp);border-radius:50%;display:flex;align-items:center;justify-content:center;transform:rotate(-12deg);opacity:0.85;}
+  .stamp-el span{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--stamp);letter-spacing:1px;text-transform:uppercase;text-align:center;line-height:1.3;}
+
+  .watermark{position:absolute;bottom:16px;left:0;right:0;text-align:center;font-family:var(--mono);font-size:9.5px;color:var(--paper-line);letter-spacing:1px;}
+
+  @media print{
+    @page{margin:0.5in;}
+    html, body{height:auto;background:white;}
+    .app{display:block;}
+    .form-panel{display:none;}
+    .preview-panel{display:block;padding:0;background:white;}
+    .sheet{box-shadow:none;width:100%;max-width:100%;min-height:auto;margin:0;padding:6px 0 0;}
+    .sheet::before{display:none;}
+    .stamp-el{position:static !important;margin:32px 0 0 auto;}
+    .watermark{position:static !important;margin-top:24px;text-align:center;}
+  }
+</style>
+  <script src="vendor/jspdf.umd.min.js"></script>
+</head>
+<body>
+<div class="app">
+
+  <!-- ============ FORM PANEL ============ -->
+  <div class="form-panel">
+    <div class="brand">
+      <div class="brand-mark">L</div>
+      <h1>Ledger</h1>
+      <span class="tag">Invoices &amp; Quotes</span>
+    </div>
+
+    <div class="field-group">
+      <span class="grp-label">Document</span>
+      <div class="row">
+        <div><label class="small">Type</label>
+          <select id="docKind">
+            <option value="INVOICE">Invoice</option>
+            <option value="QUOTE">Quote</option>
+          </select>
+        </div>
+        <div><label class="small">Number</label><input type="text" id="docNum" value="0001"></div>
+      </div>
+      <div class="row">
+        <div><label class="small">Date</label><input type="date" id="docDate"></div>
+        <div><label class="small">Due date</label><input type="date" id="dueDate"></div>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <span class="grp-label">Your business</span>
+      <div class="row"><input type="text" id="fromName" placeholder="Business or your name"></div>
+      <div class="row"><textarea id="fromMeta" placeholder="Email, phone, address (one per line)"></textarea></div>
+    </div>
+
+    <div class="field-group">
+      <span class="grp-label">Bill to</span>
+      <div class="row"><input type="text" id="toName" placeholder="Client name"></div>
+      <div class="row"><textarea id="toMeta" placeholder="Client email, company, address"></textarea></div>
+    </div>
+
+    <div class="field-group">
+      <span class="grp-label">Line items</span>
+      <div class="items" id="itemsWrap"></div>
+      <button class="add-item" id="addItemBtn" type="button">+ Add line item</button>
+    </div>
+
+    <div class="field-group">
+      <span class="grp-label">Tax &amp; discount</span>
+      <div class="row">
+        <div><label class="small">Tax %</label><input type="number" id="taxRate" value="0" step="0.1"></div>
+        <div><label class="small">Discount %</label><input type="number" id="discRate" value="0" step="0.1"></div>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <span class="grp-label">Notes</span>
+      <textarea id="notes" placeholder="Payment terms, thank-you note, bank details...">Thanks for your business! Payment due within 14 days.</textarea>
+    </div>
+
+    <button class="btn-primary" id="downloadBtn" type="button">Download as PDF</button>
+    <button class="btn-secondary" id="saveBtn" type="button">Save this client</button>
+
+    <div class="pro-box">
+      <span class="grp-label">Pro — remove watermark</span>
+      <p>Free version stamps a small watermark on the PDF. Enter your unlock code from your purchase to remove it permanently on this device.</p>
+      <input type="text" id="unlockCode" placeholder="Unlock code">
+      <button class="btn-secondary" id="unlockBtn" type="button" style="margin-top:0;">Apply code</button>
+      <div class="pro-status inactive" id="proStatus">Watermark: on (free version)</div>
+    </div>
+  </div>
+
+  <!-- ============ PREVIEW PANEL ============ -->
+  <div class="preview-panel">
+    <div class="sheet" id="sheet">
+      <div class="sheet-head">
+        <div class="sheet-brand">
+          <h2 id="pFromName">Your Business</h2>
+          <p id="pFromMeta">your@email.com</p>
+        </div>
+        <div class="doc-type">
+          <div class="kind" id="pKind">Invoice</div>
+          <div class="num" id="pNum">#0001</div>
+          <div class="date" id="pDate">—</div>
+        </div>
+      </div>
+
+      <div class="bill-to">
+        <div class="grp-label">Bill to</div>
+        <div class="name" id="pToName">Client name</div>
+        <div class="meta" id="pToMeta"></div>
+      </div>
+
+      <table class="items-table">
+        <thead>
+          <tr><th>Description</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th></tr>
+        </thead>
+        <tbody id="pItemsBody"></tbody>
+      </table>
+
+      <div class="totals">
+        <div class="trow"><span>Subtotal</span><span id="pSubtotal">$0.00</span></div>
+        <div class="trow" id="pDiscRow" style="display:none;"><span>Discount</span><span id="pDisc">$0.00</span></div>
+        <div class="trow" id="pTaxRow" style="display:none;"><span>Tax</span><span id="pTax">$0.00</span></div>
+        <div class="trow grand"><span>Total</span><span id="pTotal">$0.00</span></div>
+      </div>
+
+      <div class="notes-block">
+        <div class="grp-label">Notes</div>
+        <p id="pNotes"></p>
+      </div>
+
+      <div class="stamp-el" id="pStamp"><span id="pStampText">Due<br>14 days</span></div>
+      <div class="watermark" id="pWatermark">Made with Ledger — ledger.app</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let itemIdCounter = 0;
+let items = [];
+let proUnlocked = false;
+
+function addItem(desc='', qty=1, rate=0){
+  const id = itemIdCounter++;
+  items.push({id, desc, qty, rate});
+  renderItemsForm();
+  renderPreview();
+}
+function removeItem(id){
+  items = items.filter(i => i.id !== id);
+  renderItemsForm();
+  renderPreview();
+}
+function renderItemsForm(){
+  const wrap = document.getElementById('itemsWrap');
+  wrap.innerHTML = '';
+  items.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.innerHTML = `
+      <input type="text" placeholder="Description" value="${escapeAttr(item.desc)}" data-id="${item.id}" data-field="desc">
+      <input type="number" placeholder="Qty" value="${item.qty}" data-id="${item.id}" data-field="qty" min="0" step="0.5">
+      <input type="number" placeholder="Rate" value="${item.rate}" data-id="${item.id}" data-field="rate" min="0" step="0.01">
+      <button class="rm" data-id="${item.id}" title="Remove">×</button>
+    `;
+    wrap.appendChild(row);
+  });
+  wrap.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', (e) => {
+      const id = parseInt(e.target.dataset.id);
+      const field = e.target.dataset.field;
+      const item = items.find(i => i.id === id);
+      if(!item) return;
+      item[field] = field === 'desc' ? e.target.value : parseFloat(e.target.value || 0);
+      renderPreview();
+    });
+  });
+  wrap.querySelectorAll('.rm').forEach(btn => {
+    btn.addEventListener('click', (e) => removeItem(parseInt(e.target.dataset.id)));
+  });
+}
+function escapeAttr(s){ return (s||'').replace(/"/g,'&quot;'); }
+function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function money(n){ return '$' + (Math.round(n*100)/100).toFixed(2); }
+
+function renderPreview(){
+  document.getElementById('pFromName').textContent = document.getElementById('fromName').value || 'Your Business';
+  document.getElementById('pFromMeta').textContent = document.getElementById('fromMeta').value || '';
+  document.getElementById('pToName').textContent = document.getElementById('toName').value || 'Client name';
+  document.getElementById('pToMeta').textContent = document.getElementById('toMeta').value || '';
+
+  const kind = document.getElementById('docKind').value;
+  document.getElementById('pKind').textContent = kind === 'QUOTE' ? 'Quote' : 'Invoice';
+  document.getElementById('pNum').textContent = '#' + (document.getElementById('docNum').value || '0001');
+
+  const d = document.getElementById('docDate').value;
+  const due = document.getElementById('dueDate').value;
+  document.getElementById('pDate').textContent = d ? ('Issued ' + formatDate(d)) : '';
+
+  const body = document.getElementById('pItemsBody');
+  body.innerHTML = '';
+  let subtotal = 0;
+  items.forEach(item => {
+    const amt = (item.qty||0) * (item.rate||0);
+    subtotal += amt;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${escapeHtml(item.desc) || '—'}</td><td class="num">${item.qty||0}</td><td class="num">${money(item.rate||0)}</td><td class="num">${money(amt)}</td>`;
+    body.appendChild(tr);
+  });
+
+  const discRate = parseFloat(document.getElementById('discRate').value || 0);
+  const taxRate = parseFloat(document.getElementById('taxRate').value || 0);
+  const discAmt = subtotal * (discRate/100);
+  const taxable = subtotal - discAmt;
+  const taxAmt = taxable * (taxRate/100);
+  const total = taxable + taxAmt;
+
+  document.getElementById('pSubtotal').textContent = money(subtotal);
+  document.getElementById('pDiscRow').style.display = discRate > 0 ? 'flex' : 'none';
+  document.getElementById('pDisc').textContent = '-' + money(discAmt);
+  document.getElementById('pTaxRow').style.display = taxRate > 0 ? 'flex' : 'none';
+  document.getElementById('pTax').textContent = money(taxAmt);
+  document.getElementById('pTotal').textContent = money(total);
+
+  document.getElementById('pNotes').textContent = document.getElementById('notes').value || '';
+
+  document.getElementById('pStampText').innerHTML = kind === 'QUOTE' ? 'Valid<br>30 days' : (due ? 'Due<br>' + formatDate(due, true) : 'Payment<br>due');
+
+  document.getElementById('pWatermark').style.display = proUnlocked ? 'none' : 'block';
+}
+function formatDate(str, short=false){
+  const dt = new Date(str + 'T00:00:00');
+  if(isNaN(dt)) return '';
+  if(short) return dt.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+  return dt.toLocaleDateString('en-US', {year:'numeric', month:'long', day:'numeric'});
+}
+
+// Wire up form listeners
+['docKind','docNum','docDate','dueDate','fromName','fromMeta','toName','toMeta','taxRate','discRate','notes'].forEach(id => {
+  document.getElementById(id).addEventListener('input', renderPreview);
+  document.getElementById(id).addEventListener('change', renderPreview);
+});
+
+document.getElementById('addItemBtn').addEventListener('click', () => addItem());
+document.getElementById('downloadBtn').addEventListener('click', () => generateAndSharePDF());
+
+// ---- Native PDF generation (jsPDF) + Android share sheet (Capacitor) ----
+async function generateAndSharePDF(){
+  const btn = document.getElementById('downloadBtn');
+  const origLabel = btn.textContent;
+  btn.textContent = 'Generating…';
+  btn.disabled = true;
+  try{
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const margin = 48;
+    let y = margin;
+
+    const kind = document.getElementById('docKind').value === 'QUOTE' ? 'QUOTE' : 'INVOICE';
+    const num = document.getElementById('docNum').value || '0001';
+    const fromName = document.getElementById('fromName').value || 'Your Business';
+    const fromMeta = document.getElementById('fromMeta').value || '';
+    const toName = document.getElementById('toName').value || 'Client name';
+    const toMeta = document.getElementById('toMeta').value || '';
+    const dateStr = document.getElementById('pDate').textContent || '';
+    const notes = document.getElementById('notes').value || '';
+
+    // Header
+    doc.setFont('times', 'bold'); doc.setFontSize(20);
+    doc.text(fromName, margin, y);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+    doc.setTextColor(161, 61, 44);
+    doc.text(kind, pageW - margin, margin - 6, { align: 'right' });
+    doc.setTextColor(31, 45, 61);
+    doc.setFont('times', 'normal'); doc.setFontSize(13);
+    doc.text('#' + num, pageW - margin, margin + 12, { align: 'right' });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+    doc.setTextColor(91, 100, 112);
+    doc.text(dateStr, pageW - margin, margin + 26, { align: 'right' });
+
+    y += 20;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+    fromMeta.split('\n').forEach(line => { if(line.trim()){ doc.text(line, margin, y); y += 12; } });
+
+    y += 10;
+    doc.setDrawColor(31, 45, 61); doc.setLineWidth(1.2);
+    doc.line(margin, y, pageW - margin, y);
+    y += 26;
+
+    // Bill to
+    doc.setTextColor(166, 135, 79); doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+    doc.text('BILL TO', margin, y);
+    y += 14;
+    doc.setTextColor(31, 45, 61); doc.setFont('times', 'normal'); doc.setFontSize(13);
+    doc.text(toName, margin, y);
+    y += 14;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(91, 100, 112);
+    toMeta.split('\n').forEach(line => { if(line.trim()){ doc.text(line, margin, y); y += 12; } });
+
+    y += 16;
+    // Table header
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(91, 100, 112);
+    doc.text('DESCRIPTION', margin, y);
+    doc.text('QTY', pageW - margin - 160, y, { align: 'right' });
+    doc.text('RATE', pageW - margin - 80, y, { align: 'right' });
+    doc.text('AMOUNT', pageW - margin, y, { align: 'right' });
+    y += 6;
+    doc.setDrawColor(31, 45, 61); doc.setLineWidth(1);
+    doc.line(margin, y, pageW - margin, y);
+    y += 16;
+
+    let subtotal = 0;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(31, 45, 61);
+    items.forEach(item => {
+      const amt = (item.qty||0) * (item.rate||0);
+      subtotal += amt;
+      doc.text(item.desc || '—', margin, y);
+      doc.text(String(item.qty||0), pageW - margin - 160, y, { align: 'right' });
+      doc.text(money(item.rate||0), pageW - margin - 80, y, { align: 'right' });
+      doc.text(money(amt), pageW - margin, y, { align: 'right' });
+      y += 8;
+      doc.setDrawColor(217, 211, 193); doc.setLineWidth(0.5);
+      doc.line(margin, y, pageW - margin, y);
+      y += 16;
+    });
+
+    const discRate = parseFloat(document.getElementById('discRate').value || 0);
+    const taxRate = parseFloat(document.getElementById('taxRate').value || 0);
+    const discAmt = subtotal * (discRate/100);
+    const taxable = subtotal - discAmt;
+    const taxAmt = taxable * (taxRate/100);
+    const total = taxable + taxAmt;
+
+    y += 6;
+    doc.setFontSize(10);
+    doc.text('Subtotal', pageW - margin - 140, y);
+    doc.text(money(subtotal), pageW - margin, y, { align: 'right' });
+    y += 16;
+    if(discRate > 0){
+      doc.text('Discount', pageW - margin - 140, y);
+      doc.text('-' + money(discAmt), pageW - margin, y, { align: 'right' });
+      y += 16;
+    }
+    if(taxRate > 0){
+      doc.text('Tax', pageW - margin - 140, y);
+      doc.text(money(taxAmt), pageW - margin, y, { align: 'right' });
+      y += 16;
+    }
+    doc.setDrawColor(31, 45, 61); doc.setLineWidth(1.2);
+    doc.line(pageW - margin - 140, y, pageW - margin, y);
+    y += 16;
+    doc.setFont('times', 'bold'); doc.setFontSize(15);
+    doc.text('Total', pageW - margin - 140, y);
+    doc.text(money(total), pageW - margin, y, { align: 'right' });
+
+    y += 34;
+    doc.setDrawColor(217, 211, 193); doc.setLineWidth(0.5);
+    doc.line(margin, y, pageW - margin, y);
+    y += 18;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(166, 135, 79);
+    doc.text('NOTES', margin, y);
+    y += 12;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(91, 100, 112);
+    doc.splitTextToSize(notes, pageW - margin*2).forEach(line => { doc.text(line, margin, y); y += 12; });
+
+    if(!proUnlocked){
+      doc.setFontSize(8); doc.setTextColor(217, 211, 193);
+      doc.text('Made with Ledger', pageW/2, doc.internal.pageSize.getHeight() - 30, { align: 'center' });
+    }
+
+    const fileName = `${kind}-${num}.pdf`;
+    const base64 = doc.output('datauristring').split(',')[1];
+
+    const Cap = window.Capacitor;
+    if(Cap && Cap.Plugins && Cap.Plugins.Filesystem){
+      const { Filesystem, Share } = Cap.Plugins;
+      const written = await Filesystem.writeFile({
+        path: fileName,
+        data: base64,
+        directory: 'CACHE'
+      });
+      if(Share){
+        await Share.share({ title: fileName, url: written.uri });
+      }
+    } else {
+      // Running in a regular desktop browser (e.g. testing before building the app)
+      doc.save(fileName);
+    }
+  } catch(err){
+    console.error('PDF generation failed', err);
+    alert('Could not generate the PDF. Please try again.');
+  } finally {
+    btn.textContent = origLabel;
+    btn.disabled = false;
+  }
+}
+
+// ---- Storage (plain localStorage — works natively on Android, no setup needed) ----
+async function storageSet(key, value){ localStorage.setItem(key, value); }
+async function storageGet(key){ const v = localStorage.getItem(key); return v === null ? null : { value: v }; }
+
+// Pro unlock — simple local check against a demo code.
+// In production: replace this with a call to your payment provider's
+// license-verification API (e.g. Gumroad's license endpoint) before setting proUnlocked = true.
+document.getElementById('unlockBtn').addEventListener('click', async () => {
+  const code = document.getElementById('unlockCode').value.trim();
+  if(!code){ return; }
+  // Demo behavior: any non-empty code that matches saved codes list unlocks.
+  // Replace this block with a real license check when you deploy.
+  proUnlocked = code.length >= 6;
+  const status = document.getElementById('proStatus');
+  if(proUnlocked){
+    status.textContent = 'Watermark: removed (pro unlocked)';
+    status.className = 'pro-status active';
+    try{ await storageSet('pro-code', code); }catch(e){}
+  } else {
+    status.textContent = 'That code didn\'t work — check and try again';
+    status.className = 'pro-status inactive';
+  }
+  renderPreview();
+});
+
+document.getElementById('saveBtn').addEventListener('click', async () => {
+  const client = {
+    name: document.getElementById('toName').value,
+    meta: document.getElementById('toMeta').value,
+    savedAt: Date.now()
+  };
+  if(!client.name){ alert('Add a client name first.'); return; }
+  try{
+    const key = 'client:' + client.name.toLowerCase().replace(/\s+/g,'-');
+    await storageSet(key, JSON.stringify(client));
+    const btn = document.getElementById('saveBtn');
+    const orig = btn.textContent;
+    btn.textContent = 'Saved ✓';
+    setTimeout(() => btn.textContent = orig, 1500);
+  }catch(e){
+    console.error('Save failed', e);
+  }
+});
+
+// Init
+async function init(){
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('docDate').value = today;
+  const due = new Date(); due.setDate(due.getDate()+14);
+  document.getElementById('dueDate').value = due.toISOString().slice(0,10);
+
+  addItem('Design consultation', 4, 75);
+  addItem('Website development', 1, 950);
+
+  try{
+    const saved = await storageGet('pro-code');
+    if(saved && saved.value && saved.value.length >= 6){
+      proUnlocked = true;
+      document.getElementById('unlockCode').value = saved.value;
+      document.getElementById('proStatus').textContent = 'Watermark: removed (pro unlocked)';
+      document.getElementById('proStatus').className = 'pro-status active';
+    }
+  }catch(e){}
+
+  renderPreview();
+}
+init();
+</script>
+</body>
+</html>
